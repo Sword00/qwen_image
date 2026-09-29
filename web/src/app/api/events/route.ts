@@ -25,7 +25,7 @@ export async function GET(req: Request) {
       send({ type: "snapshot", jobs: store.list() });
       void engineStatus().then((status) => send({ type: "engine", status }));
       unsubscribe = subscribe(send);
-      // 15초마다 엔진 상태를 함께 보내 연결 유지와 상태 갱신을 겸한다.
+      // 每 15 秒发送一次引擎状态，同时保持连接并刷新状态。
       ping = setInterval(() => {
         void engineStatus()
           .then((status) => send({ type: "engine", status }))
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
         try {
           controller.close();
         } catch {
-          /* 이미 닫힘 */
+          /* 连接已经关闭 */
         }
       };
       req.signal.addEventListener("abort", close);

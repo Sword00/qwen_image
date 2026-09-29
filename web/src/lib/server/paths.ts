@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-/** 프로젝트 루트 (generate.sh, run-comfyui.sh, outputs/ 가 있는 폴더). 기본은 web/ 의 상위. */
+/** 项目根目录（包含 generate.sh、run-comfyui.sh、outputs/）；默认为 web/ 的上级目录。 */
 export const ROOT = process.env.QWEN_ROOT ? path.resolve(process.env.QWEN_ROOT) : path.resolve(process.cwd(), "..");
 export const OUTPUTS_DIR = path.join(ROOT, "outputs");
 export const WEB_IMAGES_DIR = path.join(OUTPUTS_DIR, "web");

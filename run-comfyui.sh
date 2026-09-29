@@ -1,15 +1,15 @@
 #!/usr/bin/env zsh
-# ComfyUI 서버 실행 (Apple Silicon / MPS)
+# 启动 ComfyUI 服务器（Apple Silicon / MPS）
 #
-# 사용법:
-#   ./run-comfyui.sh            # http://127.0.0.1:8188 에서 실행
-#   ./run-comfyui.sh --lowvram  # 메모리 부족 시 추가 옵션 전달
+# 用法：
+#   ./run-comfyui.sh            # 在 http://127.0.0.1:8188 运行
+#   ./run-comfyui.sh --lowvram  # 内存不足时传入额外选项
 #
-# 종료: Ctrl+C
+# 退出：Ctrl+C
 set -euo pipefail
 cd "$(dirname "$0")/ComfyUI"
 
-# MPS 에서 지원하지 않는 연산은 CPU 로 자동 폴백
+# MPS 不支持的运算自动回退到 CPU
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 
 exec .venv/bin/python main.py \

@@ -1,11 +1,11 @@
-# Qwen Image Studio 웹 앱
+# Qwen Image Studio Web 应用
 
-Next.js 16 + shadcn/ui 로 만든 Qwen-Image-2.1 생성 UI 입니다. 설치와 실행 방법, 구조 설명은 저장소 루트의 [README](../README.md) 에 있습니다.
+这是使用 Next.js 16 + shadcn/ui 构建的 Qwen-Image-2.1 生成界面。安装、运行和结构说明请参阅仓库根目录的 [README](../README.md)。
 
 ```bash
 npm install
-npm run dev -- --port 3210   # 개발 모드
+npm run dev -- --port 3210   # 开发模式
 npm run build && npm run start -- --port 3210
 ```
 
-환경변수: `PORT`, `COMFY_URL`(기본 http://127.0.0.1:8188), `COMFY_AUTOSTART`(0 이면 자동 시작 끔), `QWEN_ROOT`(기본 상위 폴더).
+环境变量：`PORT`、`COMFY_URL`（默认 http://127.0.0.1:8188）、`COMFY_AUTOSTART`（0 关闭自动启动）、`QWEN_ROOT`（默认上级目录）。

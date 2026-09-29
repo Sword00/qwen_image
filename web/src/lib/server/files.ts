@@ -7,7 +7,7 @@ export function removeJobFiles(job: Job): void {
     try {
       fs.unlinkSync(file);
     } catch (err) {
-      console.error(`[jobs] 파일 삭제 실패 ${file}:`, err);
+      console.error(`[jobs] 删除文件失败 ${file}：`, err);
     }
   }
 }

@@ -54,9 +54,9 @@ interface Props {
   onDelete: (ids: string[]) => void;
   onLoadParams: (params: GenerationParams) => void;
   onRegenerate: (params: GenerationParams, keepSeed: boolean) => void;
-  /** 선택한 이미지들을 현재 참조 목록에 덧붙인다 */
+  /** 将选中的图像追加到当前参考图列表。 */
   onAddReferences: (jobs: Job[]) => void;
-  /** 이 이미지 한 장을 참조로 삼아 편집을 시작한다 */
+  /** 使用这张图作为参考图开始编辑。 */
   onEditImage: (job: Job) => void;
 }
 
@@ -112,9 +112,9 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="font-heading text-base font-semibold">갤러리</h2>
+        <h2 className="font-heading text-base font-semibold">图库</h2>
         <Badge variant="secondary" className="tabular-nums">
-          {jobs.filter((j) => j.status === "done").length}장
+          {jobs.filter((j) => j.status === "done").length} 张
         </Badge>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -123,17 +123,17 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="프롬프트·시드 검색"
+              placeholder="搜索提示词或种子"
               className="h-8 w-48 pl-8 text-sm"
-              aria-label="갤러리 검색"
+              aria-label="搜索图库"
             />
           </div>
           <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
             <TabsList>
-              <TabsTrigger value="all">전체</TabsTrigger>
-              <TabsTrigger value="done">완료</TabsTrigger>
+              <TabsTrigger value="all">全部</TabsTrigger>
+              <TabsTrigger value="done">已完成</TabsTrigger>
               <TabsTrigger value="failed">
-                실패·취소{failedCount ? <span className="tabular-nums text-muted-foreground">{failedCount}</span> : null}
+                失败·取消{failedCount ? <span className="tabular-nums text-muted-foreground">{failedCount}</span> : null}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -147,7 +147,7 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
                 }
               >
                 {selected.size === visible.length ? <SquareIcon data-icon="inline-start" /> : <CheckSquareIcon data-icon="inline-start" />}
-                {selected.size === visible.length ? "선택 해제" : "전체 선택"}
+                {selected.size === visible.length ? "取消选择" : "全选"}
               </Button>
               <Button
                 variant="outline"
@@ -155,8 +155,8 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
                 disabled={selectedDone.length === 0 || selectedDone.length > MAX_REFERENCES}
                 title={
                   selectedDone.length > MAX_REFERENCES
-                    ? `참조 이미지는 최대 ${MAX_REFERENCES}장까지 고를 수 있습니다`
-                    : "선택한 이미지를 생성 폼의 참조 이미지에 추가합니다"
+                    ? `最多选择 ${MAX_REFERENCES} 张参考图`
+                    : "将所选图片添加到生成表单的参考图"
                 }
                 onClick={() => {
                   onAddReferences(selectedDone);
@@ -164,7 +164,7 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
                 }}
               >
                 <ImagePlusIcon data-icon="inline-start" />
-                {selectedDone.length > 0 ? `${selectedDone.length}장 ` : ""}참조로 추가
+                {selectedDone.length > 0 ? `${selectedDone.length} 张` : ""}添加为参考图
               </Button>
               <Button
                 variant="destructive"
@@ -173,16 +173,16 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
                 onClick={() => setConfirmIds([...selected])}
               >
                 <Trash2Icon data-icon="inline-start" />
-                {selected.size}개 삭제
+                删除 {selected.size} 项
               </Button>
               <Button variant="ghost" size="sm" onClick={exitSelectMode}>
-                완료
+                完成
               </Button>
             </>
           ) : (
             <Button variant="outline" size="sm" disabled={visible.length === 0} onClick={() => setSelectMode(true)}>
               <CheckSquareIcon data-icon="inline-start" />
-              선택
+              选择
             </Button>
           )}
         </div>
@@ -200,9 +200,9 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
             <ImageIcon className="size-5 text-muted-foreground" />
           </span>
           <div>
-            <p className="text-sm font-medium">{jobs.length === 0 ? "아직 생성한 이미지가 없습니다" : "조건에 맞는 항목이 없습니다"}</p>
+            <p className="text-sm font-medium">{jobs.length === 0 ? "还没有生成图片" : "没有符合条件的项目"}</p>
             <p className="text-xs text-muted-foreground">
-              {jobs.length === 0 ? "왼쪽에서 프롬프트를 입력하고 생성을 시작하세요." : "검색어나 필터를 바꿔 보세요."}
+              {jobs.length === 0 ? "在左侧输入提示词并开始生成。" : "尝试更换搜索词或筛选条件。"}
             </p>
           </div>
         </div>
@@ -232,8 +232,8 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
                     ) : (
                       <BanIcon className="size-3.5" />
                     )}
-                    <span className="font-medium">{job.status === "failed" ? "실패" : "취소됨"}</span>
-                    <span className="ml-auto tabular-nums">시드 {p.seed}</span>
+                    <span className="font-medium">{job.status === "failed" ? "失败" : "已取消"}</span>
+                    <span className="ml-auto tabular-nums">种子 {p.seed}</span>
                   </div>
                   <p className="line-clamp-3 leading-snug" title={p.prompt}>
                     {truncate(p.prompt, 120)}
@@ -247,11 +247,11 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
                     <div className="mt-auto flex gap-1.5">
                       <Button size="xs" variant="outline" onClick={() => onRegenerate(p, true)}>
                         <RefreshCwIcon data-icon="inline-start" />
-                        다시 시도
+                        重试
                       </Button>
                       <Button size="xs" variant="ghost" onClick={() => setConfirmIds([job.id])}>
                         <Trash2Icon data-icon="inline-start" />
-                        삭제
+                        删除
                       </Button>
                     </div>
                   ) : null}
@@ -270,7 +270,7 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
                 <button
                   type="button"
                   className="absolute inset-0 size-full cursor-zoom-in focus-visible:outline-2 focus-visible:outline-ring"
-                  aria-label="이미지 크게 보기"
+                  aria-label="放大查看图片"
                   onClick={() => (selectMode ? toggleSelected(job.id) : setOpenId(job.id))}
                 >
                   <Image
@@ -284,15 +284,15 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent p-2 pt-8 text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100">
                   <p className="line-clamp-2 leading-snug">{p.prompt}</p>
                   <p className="mt-0.5 tabular-nums text-white/70">
-                    {job.image?.width}×{job.image?.height} · 시드 {p.seed} · {p.steps}스텝
-                    {p.references?.length ? ` · 편집(참조 ${p.references.length}장)` : ""}
+                    {job.image?.width}×{job.image?.height} · 种子 {p.seed} · {p.steps} 步
+                    {p.references?.length ? ` · 编辑（参考图 ${p.references.length} 张）` : ""}
                   </p>
                 </div>
 
                 {p.references?.length ? (
                   <span
                     className="pointer-events-none absolute top-2 left-2 flex size-6 items-center justify-center rounded-full bg-background/90 text-foreground"
-                    title="참조 이미지로 편집한 결과"
+                    title="使用参考图编辑的结果"
                   >
                     <PencilLineIcon className="size-3.5" />
                   </span>
@@ -301,46 +301,46 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => toggleSelected(job.id)}
-                    aria-label="선택"
+                    aria-label="选择"
                     className="absolute top-2 left-2 size-5 bg-background/90"
                   />
                 ) : (
                   <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                     <DropdownMenu>
                       <DropdownMenuTrigger
-                        render={<Button variant="secondary" size="icon-sm" aria-label="더 보기" className="bg-background/90" />}
+                        render={<Button variant="secondary" size="icon-sm" aria-label="更多操作" className="bg-background/90" />}
                       >
                         <MoreHorizontalIcon />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onAddReferences([job])}>
                           <ImagePlusIcon />
-                          참조 이미지로 추가
+                          添加为参考图
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onEditImage(job)}>
                           <PencilLineIcon />
-                          이 이미지 편집하기
+                          编辑此图片
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onLoadParams(p)}>
                           <SlidersHorizontalIcon />
-                          설정 불러오기
+                          加载设置
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onRegenerate(p, true)}>
                           <RefreshCwIcon />
-                          같은 시드로 재생성
+                          使用相同种子重新生成
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onRegenerate(p, false)}>
                           <RefreshCwIcon />
-                          새 시드로 재생성
+                          使用新种子重新生成
                         </DropdownMenuItem>
                         <DropdownMenuItem render={<a href={imageUrl(job.id, true)} download />}>
                           <DownloadIcon />
-                          다운로드
+                          下载
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem variant="destructive" onClick={() => setConfirmIds([job.id])}>
                           <Trash2Icon />
-                          삭제
+                          删除
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -378,12 +378,12 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmIds && confirmIds.length > 1 ? `${confirmIds.length}개 항목을 삭제할까요?` : "이 항목을 삭제할까요?"}
+              {confirmIds && confirmIds.length > 1 ? `确定删除 ${confirmIds.length} 个项目吗？` : "确定删除此项目吗？"}
             </AlertDialogTitle>
-            <AlertDialogDescription>이미지 파일과 생성 기록이 함께 지워지며 되돌릴 수 없습니다.</AlertDialogDescription>
+            <AlertDialogDescription>图片文件和生成记录都会被删除，且无法恢复。</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => {
@@ -392,7 +392,7 @@ export function Gallery({ jobs, loaded, onDelete, onLoadParams, onRegenerate, on
                 exitSelectMode();
               }}
             >
-              삭제
+              删除
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

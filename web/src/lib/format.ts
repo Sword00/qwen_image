@@ -1,12 +1,12 @@
 export function formatDuration(ms: number | undefined): string {
   if (ms === undefined || !Number.isFinite(ms) || ms < 0) return "-";
   const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}초`;
+  if (s < 60) return `${s} 秒`;
   const m = Math.floor(s / 60);
   const rest = s % 60;
-  if (m < 60) return rest ? `${m}분 ${rest}초` : `${m}분`;
+  if (m < 60) return rest ? `${m} 分 ${rest} 秒` : `${m} 分`;
   const h = Math.floor(m / 60);
-  return `${h}시간 ${m % 60}분`;
+  return `${h} 小时 ${m % 60} 分`;
 }
 
 export function formatBytes(n: number | undefined): string {

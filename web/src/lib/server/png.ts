@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-/** PNG 헤더(IHDR)에서 가로·세로를 읽는다. PNG 가 아니면 0 을 돌려준다. */
+/** 从 PNG 头部（IHDR）读取宽高；如果不是 PNG 则返回 0。 */
 export function readPngSize(file: string): { width: number; height: number } {
   const fd = fs.openSync(file, "r");
   try {

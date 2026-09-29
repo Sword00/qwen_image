@@ -10,13 +10,13 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "Qwen Image 2.1 Studio",
-  description: "Qwen-Image-2.1 을 Apple Silicon 에서 실행하는 로컬 이미지 생성 스튜디오",
+  description: "在 Apple Silicon 上运行 Qwen-Image-2.1 的本地图像生成工作室",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="ko"
+      lang="zh-CN"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >

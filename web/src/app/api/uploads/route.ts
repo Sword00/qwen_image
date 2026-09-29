@@ -12,20 +12,20 @@ export async function POST(req: Request) {
   try {
     form = await req.formData();
   } catch {
-    return NextResponse.json({ error: "multipart/form-data 형식이 아닙니다." }, { status: 400 });
+    return NextResponse.json({ error: "请求不是 multipart/form-data 格式。" }, { status: 400 });
   }
   const file = form.get("file");
-  if (!(file instanceof File)) return NextResponse.json({ error: "file 필드가 없습니다." }, { status: 400 });
+  if (!(file instanceof File)) return NextResponse.json({ error: "缺少 file 字段。" }, { status: 400 });
   if (file.size > MAX_UPLOAD_BYTES) {
-    return NextResponse.json({ error: `이미지는 ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB 이하만 올릴 수 있습니다.` }, { status: 413 });
+    return NextResponse.json({ error: `图像大小不能超过 ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB。` }, { status: 413 });
   }
   if (file.type && !ALLOWED.has(file.type)) {
-    return NextResponse.json({ error: `지원하지 않는 형식입니다: ${file.type}` }, { status: 415 });
+    return NextResponse.json({ error: `不支持的格式：${file.type}` }, { status: 415 });
   }
   try {
     const info = await saveUpload(Buffer.from(await file.arrayBuffer()));
     return NextResponse.json(info, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: `이미지를 처리하지 못했습니다: ${err instanceof Error ? err.message : String(err)}` }, { status: 422 });
+    return NextResponse.json({ error: `无法处理图像：${err instanceof Error ? err.message : String(err)}` }, { status: 422 });
   }
 }

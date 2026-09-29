@@ -45,11 +45,11 @@ export async function runMflux(
     "--low-ram",
   ];
   if (p.quantize) args.push("--quantize", String(p.quantize));
-  // mflux 포트는 편집 변형을 지원하지 않으므로 첫 참조 이미지만 img2img 로 쓴다.
+  // mflux 端口不支持指令编辑，因此只将第一张参考图用于 img2img。
   const refs = p.references ?? [];
   if (refs.length > 0) {
     const ref = uploadPath(refs[0]);
-    if (!fs.existsSync(ref)) throw new Error(`참조 이미지를 찾을 수 없습니다: ${refs[0]}`);
+    if (!fs.existsSync(ref)) throw new Error(`找不到参考图：${refs[0]}`);
     args.push("--image", ref, String(p.imageStrength ?? 0.6));
   }
   if (p.negativePrompt.trim() && p.cfg > 1) {
@@ -93,14 +93,14 @@ export async function runMflux(
     });
 
     child.on("error", (err) => {
-      reject(new Error(`mflux 를 실행할 수 없습니다 (${MFLUX_BIN}): ${err.message}`));
+      reject(new Error(`无法运行 mflux（${MFLUX_BIN}）：${err.message}`));
     });
     child.on("close", (code) => {
       if (cancelled) return reject(new CancelledError());
       if (code !== 0) {
-        return reject(new Error(`mflux 가 종료 코드 ${code} 로 끝났습니다.\n${tail.slice(-8).join("\n")}`));
+        return reject(new Error(`mflux 以退出码 ${code} 结束。\n${tail.slice(-8).join("\n")}`));
       }
-      if (!fs.existsSync(dest)) return reject(new Error("mflux 가 출력 파일을 만들지 않았습니다."));
+      if (!fs.existsSync(dest)) return reject(new Error("mflux 没有生成输出文件。"));
       update({ phase: "saving" });
       const { width, height } = readPngSize(dest);
       resolve({ file: dest, width, height, bytes: fs.statSync(dest).size });

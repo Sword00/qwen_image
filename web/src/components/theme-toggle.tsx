@@ -21,14 +21,14 @@ export function ThemeToggle() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label={dark ? "밝은 테마로 전환" : "어두운 테마로 전환"}
+            aria-label={dark ? "切换到浅色主题" : "切换到深色主题"}
             onClick={() => setTheme(dark ? "light" : "dark")}
           />
         }
       >
         {dark ? <SunIcon /> : <MoonIcon />}
       </TooltipTrigger>
-      <TooltipContent>{dark ? "밝은 테마" : "어두운 테마"}</TooltipContent>
+      <TooltipContent>{dark ? "浅色主题" : "深色主题"}</TooltipContent>
     </Tooltip>
   );
 }

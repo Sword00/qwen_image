@@ -11,14 +11,14 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const job = store.get(id);
-  if (!job) return NextResponse.json({ error: "작업을 찾을 수 없습니다." }, { status: 404 });
+  if (!job) return NextResponse.json({ error: "找不到该任务。" }, { status: 404 });
   return NextResponse.json({ job });
 }
 
 export async function DELETE(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const job = store.get(id);
-  if (!job) return NextResponse.json({ error: "작업을 찾을 수 없습니다." }, { status: 404 });
+  if (!job) return NextResponse.json({ error: "找不到该任务。" }, { status: 404 });
   if (job.status === "running" || job.status === "queued") await worker.cancel(id);
   removeJobFiles(job);
   store.remove(id);

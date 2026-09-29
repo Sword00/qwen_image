@@ -49,16 +49,16 @@ class JobStore {
     try {
       const raw = JSON.parse(fs.readFileSync(JOBS_FILE, "utf8")) as { jobs?: Job[] };
       for (const job of raw.jobs ?? []) {
-        // 서버가 재시작되면 실행 중이던 작업은 이어갈 수 없다. 대기 중이던 작업은 그대로 다시 대기한다.
+        // 服务器重启后无法继续运行中的任务；等待中的任务保持等待状态。
         if (job.status === "running") {
           job.status = "failed";
-          job.error = "서버가 재시작되어 생성이 중단되었습니다.";
+          job.error = "服务器已重启，生成已中断。";
           job.finishedAt = job.finishedAt ?? Date.now();
         }
         this.jobs.set(job.id, job);
       }
     } catch (err) {
-      console.error("[store] jobs.json 을 읽지 못했습니다:", err);
+      console.error("[store] 无法读取 jobs.json：", err);
     }
   }
 
@@ -77,7 +77,7 @@ class JobStore {
       fs.writeFileSync(tmp, JSON.stringify({ jobs: this.list() }, null, 2));
       fs.renameSync(tmp, JOBS_FILE);
     } catch (err) {
-      console.error("[store] jobs.json 저장 실패:", err);
+      console.error("[store] 保存 jobs.json 失败：", err);
     }
   }
 }

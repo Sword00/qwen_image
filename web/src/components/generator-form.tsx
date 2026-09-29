@@ -65,9 +65,9 @@ export interface LoadRequest {
 }
 
 export interface ReferenceRequest {
-  /** 업로드 ID 목록 */
+  /** 上传 ID 列表。 */
   ids: string[];
-  /** add: 현재 목록 뒤에 덧붙인다 (최대 장수 초과분은 버림). replace: 이 이미지들로 교체한다 */
+  /** add：追加到当前列表（超过最大数量的部分会丢弃）；replace：用这些图像替换当前列表。 */
   mode: "add" | "replace";
   nonce: number;
 }
@@ -81,7 +81,7 @@ interface Props {
 
 const ENGINE_ITEMS: { value: Engine; label: string }[] = [
   { value: "comfyui", label: "ComfyUI · GGUF (PyTorch MPS)" },
-  { value: "mflux", label: "mflux · MLX (bf16 원본)" },
+  { value: "mflux", label: "mflux · MLX（bf16 原始权重）" },
 ];
 
 function randomSeed(): number {
@@ -119,7 +119,7 @@ function parseSaved(raw: string | null): Saved | null {
 }
 
 export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit }: Props) {
-  // 서버 렌더링에서는 기본값, 브라우저에서는 마지막에 저장한 설정으로 시작한다.
+  // 服务端渲染使用默认值，浏览器中使用上次保存的设置。
   const savedRaw = useSyncExternalStore(noopSubscribe, readSavedRaw, () => null);
   const saved = useMemo(() => parseSaved(savedRaw), [savedRaw]);
   const [formOverride, setFormOverride] = useState<GenerationParams | null>(null);
@@ -145,14 +145,14 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
   const samplers = engine?.comfy.samplers.length ? engine.comfy.samplers : FALLBACK_SAMPLERS;
   const schedulers = engine?.comfy.schedulers.length ? engine.comfy.schedulers : FALLBACK_SCHEDULERS;
 
-  // 갤러리에서 "설정 불러오기": 렌더 중에 파생 상태를 맞춘다.
+  // 从图库加载设置：在渲染过程中同步派生状态。
   if (loadRequest && loadRequest.nonce !== appliedNonce) {
     setAppliedNonce(loadRequest.nonce);
     setFormOverride({ ...DEFAULT_PARAMS, ...loadRequest.params });
     setAdvancedOpen(true);
   }
 
-  // 갤러리에서 "참조 이미지로 추가" / "이 이미지 편집하기": 렌더 중에 파생 상태를 맞춘다.
+  // 从图库“添加为参考图”或“编辑此图”：在渲染过程中同步派生状态。
   if (referenceRequest && referenceRequest.nonce !== appliedRefNonce) {
     setAppliedRefNonce(referenceRequest.nonce);
     const incoming = referenceRequest.ids;
@@ -170,26 +170,26 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
     });
   }
 
-  // 참조 이미지 반영 결과를 알린다 (외부 시스템인 토스트 호출이므로 effect 에 둔다)
+  // 通知参考图应用结果；Toast 属于外部系统，因此放在 effect 中调用。
   useEffect(() => {
     if (!refNotice) return;
     if (refNotice.dropped > 0) {
-      toast.warning(`참조 이미지는 최대 ${MAX_REFERENCES}장입니다. ${refNotice.dropped}장은 추가하지 않았습니다.`);
+      toast.warning(`参考图最多 ${MAX_REFERENCES} 张，${refNotice.dropped} 张未添加。`);
     } else if (refNotice.mode === "replace") {
-      toast("이 이미지를 참조로 편집합니다. 어떻게 바꿀지 프롬프트에 쓰고 생성을 시작하세요.");
+      toast("将使用此图片作为参考图。请在提示词中写明修改内容，然后开始生成。");
     } else {
-      toast(`참조 이미지 ${refNotice.total}/${MAX_REFERENCES}장. 프롬프트에서 "첫 번째", "두 번째"로 가리킬 수 있습니다.`);
+      toast(`参考图 ${refNotice.total}/${MAX_REFERENCES} 张。可以在提示词中用“第一张”“第二张”指代。`);
     }
   }, [refNotice]);
 
-  // 마지막 설정 저장 (사용자가 무언가 바꾼 뒤에만)
+  // 保存最新设置（仅在用户修改内容后保存）。
   useEffect(() => {
     if (formOverride === null && countOverride === null) return;
     const timer = window.setTimeout(() => {
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, count }));
       } catch {
-        /* 저장 공간이 없으면 건너뛴다 */
+        /* 没有存储空间时跳过 */
       }
     }, 300);
     return () => window.clearTimeout(timer);
@@ -206,7 +206,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
     if (!files || files.length === 0) return;
     const room = MAX_REFERENCES - form.references.length;
     if (room <= 0) {
-      toast.error(`참조 이미지는 최대 ${MAX_REFERENCES}장까지 넣을 수 있습니다`);
+          toast.error(`参考图最多 ${MAX_REFERENCES} 张`);
       return;
     }
     const list = Array.from(files)
@@ -220,7 +220,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
           const info = await api.upload(file);
           patchFn((f) => ({ references: [...f.references, info.id].slice(0, MAX_REFERENCES) }));
         } catch (err) {
-          toast.error(`${file.name}: ${err instanceof Error ? err.message : "업로드 실패"}`);
+          toast.error(`${file.name}：${err instanceof Error ? err.message : "上传失败"}`);
         }
       }
     } finally {
@@ -244,7 +244,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
       width,
       height,
       gguf: pickGguf(ggufFiles, preset.gguf),
-      // 프리셋이 원하는 인코더가 설치돼 있으면 그것을, 아니면 지금 선택을 유지한다.
+      // 如果预设所需编码器已安装则使用它，否则保留当前选择。
       textEncoder: preset.textEncoder
         ? pickTextEncoder(textEncoders, preset.textEncoder)
         : textEncoders.includes(form.textEncoder)
@@ -299,15 +299,15 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <SparklesIcon className="size-4" />
-          이미지 생성
+          图片生成
         </CardTitle>
-        <CardDescription>프롬프트를 쓰고 프리셋을 고르면 바로 생성할 수 있습니다.</CardDescription>
+        <CardDescription>输入提示词并选择预设即可开始生成。</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
-        {/* 프롬프트 */}
+        {/* 提示词 */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="prompt">프롬프트</Label>
+            <Label htmlFor="prompt">提示词</Label>
             <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger
@@ -320,13 +320,13 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                   }
                 >
                   <LightbulbIcon data-icon="inline-start" />
-                  예시
+                  示例
                 </TooltipTrigger>
-                <TooltipContent>예시 프롬프트를 무작위로 채웁니다</TooltipContent>
+                <TooltipContent>随机填入示例提示词</TooltipContent>
               </Tooltip>
               <Button variant="ghost" size="xs" disabled={!form.prompt} onClick={() => set({ prompt: "" })}>
                 <EraserIcon data-icon="inline-start" />
-                지우기
+                清空
               </Button>
             </div>
           </div>
@@ -337,24 +337,24 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
             onKeyDown={(e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void handleSubmit();
             }}
-            placeholder='예: A neon shop sign that reads "QWEN IMAGE 2.1", rainy night, reflections on wet pavement'
+            placeholder='例如：写有 "QWEN IMAGE 2.1" 的霓虹商店招牌，雨夜，湿润路面的倒影'
             className="min-h-28 resize-y text-sm leading-relaxed"
           />
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
               {editing
-                ? "참조 이미지를 어떻게 바꿀지 지시문으로 쓰세요. 여러 장이면 \"첫 번째\", \"두 번째\"로 가리킵니다."
-                : "영어·한국어 모두 가능합니다. 글자를 넣고 싶으면 따옴표로 감싸세요."}
+                ? "写明如何修改参考图。多张图片时可以用“第一张”“第二张”指代。"
+                : "支持中文和英文。需要生成文字时请用引号括起来。"}
             </span>
-            <span className="tabular-nums">{form.prompt.length}자</span>
+            <span className="tabular-nums">{form.prompt.length} 字</span>
           </div>
         </div>
 
-        {/* 참조 이미지 */}
+        {/* 参考图 */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <Label>
-              참조 이미지 <span className="font-normal text-muted-foreground">(선택 · 이미지 편집)</span>
+              参考图 <span className="font-normal text-muted-foreground">（可选 · 图片编辑）</span>
             </Label>
             <Button
               variant="ghost"
@@ -367,7 +367,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
               ) : (
                 <ImagePlusIcon data-icon="inline-start" />
               )}
-              이미지 추가
+              添加图片
             </Button>
             <input
               ref={fileInputRef}
@@ -396,21 +396,20 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
           >
             {form.references.length === 0 ? (
               <p className="py-2 text-center text-xs text-muted-foreground">
-                이미지를 끌어다 놓거나 [이미지 추가]를 누르세요. 최대 {MAX_REFERENCES}장. 넣으면 프롬프트를 편집 지시로
-                해석합니다.
+                拖放图片或点击[添加图片]。最多 {MAX_REFERENCES} 张。添加后，提示词会被视为编辑指令。
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {form.references.map((id, i) => (
                   <div key={id} className="group relative size-20 overflow-hidden rounded-md border bg-muted">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={uploadUrl(id)} alt={`참조 이미지 ${i + 1}`} className="size-full object-cover" />
+                    <img src={uploadUrl(id)} alt={`参考图 ${i + 1}`} className="size-full object-cover" />
                     <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[10px] tabular-nums text-white">
                       {i + 1}
                     </span>
                     <button
                       type="button"
-                      aria-label="참조 이미지 제거"
+                      aria-label="移除参考图"
                       onClick={() => removeReference(id)}
                       className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                     >
@@ -425,7 +424,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
             form.engine === "comfyui" ? (
               <div className="flex flex-col gap-1.5">
                 <label className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">출력 크기를 첫 참조 이미지에 맞추기</span>
+                  <span className="text-muted-foreground">输出尺寸匹配第一张参考图</span>
                   <Switch
                     size="sm"
                     checked={form.followReferenceSize}
@@ -433,19 +432,18 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                   />
                 </label>
                 <p className="text-xs text-muted-foreground">
-                  예: &quot;배경을 노을 지는 해변으로 바꿔줘&quot;, &quot;두 번째 이미지의 옷을 첫 번째 인물에게 입혀줘&quot;.
-                  참조가 많을수록 메모리를 더 씁니다.
+                  例如：“把背景换成夕阳海滩”，“让第一张图片的人物穿上第二张图片的衣服”。参考图越多，占用内存越多。
                 </p>
                 {isGgufTextEncoder(form.textEncoder) && !GGUF_TEXT_ENCODER_SUPPORTS_EDIT ? (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    GGUF 텍스트 인코더는 참조 이미지 편집에 쓸 수 없어 이 작업은 int8 인코더로 자동 대체됩니다.
+                    当前 GGUF 文本编码器不支持参考图编辑，此任务会自动切换到 int8 编码器。
                   </p>
                 ) : null}
               </div>
             ) : (
               <div className="grid gap-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">변경 강도 (mflux 는 첫 이미지만 img2img 로 사용)</span>
+                  <span className="text-muted-foreground">变化强度（mflux 仅将第一张图片用于 img2img）</span>
                   <span className="tabular-nums">{form.imageStrength.toFixed(2)}</span>
                 </div>
                 <Slider
@@ -460,9 +458,9 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
           ) : null}
         </div>
 
-        {/* 스타일 */}
+        {/* 风格 */}
         <div className="flex flex-col gap-2">
-          <Label>스타일</Label>
+          <Label>风格</Label>
           <ToggleGroup
             value={[form.styleId ?? "none"]}
             onValueChange={(v) => v[0] && set({ styleId: String(v[0]) })}
@@ -478,9 +476,9 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
           </ToggleGroup>
         </div>
 
-        {/* 품질 프리셋 */}
+        {/* 质量预设 */}
         <div className="flex flex-col gap-2">
-          <Label>품질 프리셋</Label>
+          <Label>质量预设</Label>
           <ToggleGroup
             value={[form.presetId ?? "custom"]}
             onValueChange={(v) => v[0] && applyQuality(String(v[0]))}
@@ -500,10 +498,10 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
           </ToggleGroup>
         </div>
 
-        {/* 비율 */}
+        {/* 比例 */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <Label>화면 비율</Label>
+            <Label>画面比例</Label>
             <span className="text-xs tabular-nums text-muted-foreground">
               {form.width} × {form.height}
             </span>
@@ -519,7 +517,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
               const w = r.w >= r.h ? 16 : Math.round((16 * r.w) / r.h);
               const h = r.h >= r.w ? 16 : Math.round((16 * r.h) / r.w);
               return (
-                <ToggleGroupItem key={r.id} value={r.id} aria-label={`비율 ${r.label}`} className="gap-1.5">
+                <ToggleGroupItem key={r.id} value={r.id} aria-label={`比例 ${r.label}`} className="gap-1.5">
                   <span
                     className="inline-block rounded-[2px] border border-current opacity-70"
                     style={{ width: w, height: h }}
@@ -531,23 +529,23 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
           </ToggleGroup>
         </div>
 
-        {/* 고급 설정 */}
+            {/* 高级设置 */}
         <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
           <CollapsibleTrigger
             render={<Button variant="ghost" size="sm" className="-mx-2 w-[calc(100%+1rem)] justify-between" />}
           >
             <span className="flex items-center gap-2">
-              고급 설정
+              高级设置
               <Badge variant="secondary" className="font-normal">
-                {modelSummary} · {form.steps}스텝 · CFG {form.cfg} · {form.seed === null ? "무작위 시드" : `시드 ${form.seed}`}
+                {modelSummary} · {form.steps} 步 · CFG {form.cfg} · {form.seed === null ? "随机种子" : `种子 ${form.seed}`}
               </Badge>
             </span>
             <ChevronDownIcon className={"transition-transform " + (advancedOpen ? "rotate-180" : "")} />
           </CollapsibleTrigger>
           <CollapsibleContent className="flex flex-col gap-5 pt-3">
-            {/* 엔진 */}
+            {/* 引擎 */}
             <div className="grid gap-2">
-              <Label htmlFor="engine">실행 엔진</Label>
+              <Label htmlFor="engine">运行引擎</Label>
               <Select
                 value={form.engine}
                 onValueChange={(v) => v && set({ engine: v as Engine })}
@@ -566,17 +564,17 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
               </Select>
               <p className="text-xs text-muted-foreground">
                 {form.engine === "comfyui"
-                  ? "GGUF 양자화 모델을 ComfyUI 로 실행합니다. 모델이 메모리에 남아 있어 연속 생성이 빠릅니다."
+                  ? "使用 ComfyUI 运行 GGUF 量化模型。模型会保留在内存中，连续生成更快。"
                   : engine?.mflux.available
-                    ? "bf16 원본 가중치를 MLX 로 실행합니다. 실행마다 모델을 다시 불러오므로 첫 스텝까지 1~2분 걸립니다."
-                    : "mflux 명령을 찾을 수 없습니다. `uv tool install mflux` 로 설치하세요."}
+                    ? "使用 MLX 运行 bf16 原始权重。每次运行都要重新加载模型，开始第一步需要 1~2 分钟。"
+                    : "找不到 mflux 命令。请使用 `uv tool install mflux` 安装。"}
               </p>
             </div>
 
             {form.engine === "comfyui" ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="gguf">디퓨전 모델 (GGUF)</Label>
+                  <Label htmlFor="gguf">扩散模型（GGUF）</Label>
                   <Select
                     value={ggufFiles.includes(form.gguf) ? form.gguf : ggufFiles[0]}
                     onValueChange={(v) => v && set({ gguf: String(v), presetId: "custom" })}
@@ -596,7 +594,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="te">텍스트 인코더</Label>
+                  <Label htmlFor="te">文本编码器</Label>
                   <Select
                     value={textEncoders.includes(form.textEncoder) ? form.textEncoder : textEncoders[0]}
                     onValueChange={(v) => v && set({ textEncoder: String(v) })}
@@ -617,7 +615,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
               </div>
             ) : (
               <div className="grid gap-2">
-                <Label htmlFor="quantize">트랜스포머 양자화</Label>
+                <Label htmlFor="quantize">Transformer 量化</Label>
                 <Select
                   value={form.quantize === null ? "none" : String(form.quantize)}
                   onValueChange={(v) => v && set({ quantize: v === "none" ? null : Number(v), presetId: "custom" })}
@@ -638,17 +636,17 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  텍스트 인코더(17.5GB)는 항상 bf16 으로 실행됩니다. 36GB 장비에서는 8비트를 권장합니다.
+                  文本编码器（17.5GB）始终以 bf16 运行。36GB 设备建议使用 8 位量化。
                 </p>
               </div>
             )}
 
             <Separator />
 
-            {/* 스텝 */}
+            {/* 步数 */}
             <div className="grid gap-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="steps">샘플링 스텝</Label>
+                <Label htmlFor="steps">采样步数</Label>
                 <Input
                   id="steps"
                   type="number"
@@ -671,13 +669,13 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                 step={1}
                 onValueChange={(v) => set({ steps: Array.isArray(v) ? v[0] : v, presetId: "custom" })}
               />
-              <p className="text-xs text-muted-foreground">공식 권장값은 40입니다. 20 정도면 속도가 두 배 빨라지지만 세부 묘사가 줄어듭니다.</p>
+              <p className="text-xs text-muted-foreground">官方建议值为 40。降到约 20 步可以提速一倍，但细节会减少。</p>
             </div>
 
-            {/* CFG + 부정 프롬프트 */}
+            {/* CFG + 负面提示词 */}
             <div className="grid gap-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="cfg">CFG (가이던스)</Label>
+                <Label htmlFor="cfg">CFG（引导强度）</Label>
                 <Input
                   id="cfg"
                   type="number"
@@ -700,7 +698,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
               />
               <div className="grid gap-2">
                 <Label htmlFor="negative" className="text-muted-foreground">
-                  부정 프롬프트
+                  负面提示词
                 </Label>
                 <Textarea
                   id="negative"
@@ -711,20 +709,20 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                 />
                 <p className="text-xs text-muted-foreground">
                   {form.cfg <= 1
-                    ? "Qwen-Image-2.1 은 가이던스 없이(CFG 1) 쓰도록 학습되었습니다. 부정 프롬프트를 쓰려면 CFG 를 2~4 로 올리세요."
-                    : "CFG 가 1보다 크면 한 스텝에 두 번 계산하므로 생성 시간이 약 두 배가 됩니다."}
+                    ? "Qwen-Image-2.1 针对无引导（CFG 1）进行了训练。使用负面提示词时，请将 CFG 调到 2~4。"
+                    : "CFG 大于 1 时，每一步会计算两次，生成时间约增加一倍。"}
                 </p>
               </div>
             </div>
 
             <Separator />
 
-            {/* 시드 */}
+            {/* 种子 */}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="seed">시드</Label>
+                <Label htmlFor="seed">种子</Label>
                 <label className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">매번 무작위</span>
+                  <span className="text-muted-foreground">每次随机</span>
                   <Switch
                     checked={form.seed === null}
                     onCheckedChange={(checked) => set({ seed: checked ? null : randomSeed() })}
@@ -739,7 +737,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                   max={2_147_483_647}
                   disabled={form.seed === null}
                   value={form.seed ?? ""}
-                  placeholder="무작위"
+                  placeholder="随机"
                   onChange={(e) => set({ seed: e.target.value === "" ? null : Math.max(0, Math.floor(Number(e.target.value))) })}
                   className="tabular-nums"
                 />
@@ -749,28 +747,28 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                       <Button
                         variant="outline"
                         size="icon"
-                        aria-label="새 시드"
+                        aria-label="生成新种子"
                         onClick={() => set({ seed: randomSeed() })}
                       />
                     }
                   >
                     <DicesIcon />
                   </TooltipTrigger>
-                  <TooltipContent>새 시드를 뽑아 고정합니다</TooltipContent>
+                  <TooltipContent>生成并固定一个新种子</TooltipContent>
                 </Tooltip>
               </div>
               <p className="text-xs text-muted-foreground">
-                여러 장을 연속 생성하면 고정 시드에서 1씩 증가한 값을 씁니다.
+                连续生成多张时，固定种子会逐张递增 1。
               </p>
             </div>
 
-            {/* 크기 */}
+            {/* 尺寸 */}
             <div className="grid gap-2">
-              <Label>크기 (픽셀)</Label>
+              <Label>尺寸（像素）</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
-                  aria-label="가로"
+                  aria-label="宽度"
                   min={SIZE_MIN}
                   max={SIZE_MAX}
                   step={32}
@@ -782,7 +780,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                 <span className="text-muted-foreground">×</span>
                 <Input
                   type="number"
-                  aria-label="세로"
+                  aria-label="高度"
                   min={SIZE_MIN}
                   max={SIZE_MAX}
                   step={32}
@@ -797,25 +795,25 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                       <Button
                         variant="outline"
                         size="icon"
-                        aria-label="가로세로 바꾸기"
+                        aria-label="交换宽高"
                         onClick={() => setSize({ width: form.height, height: form.width })}
                       />
                     }
                   >
                     <ArrowLeftRightIcon />
                   </TooltipTrigger>
-                  <TooltipContent>가로와 세로를 바꿉니다</TooltipContent>
+                  <TooltipContent>交换宽度和高度</TooltipContent>
                 </Tooltip>
               </div>
               <p className="text-xs text-muted-foreground">
-                32의 배수로 맞춰집니다 ({SIZE_MIN}~{SIZE_MAX}). 2048 급은 메모리를 많이 써서 느려질 수 있습니다.
+                尺寸会调整为 32 的倍数（{SIZE_MIN}~{SIZE_MAX}）。2048 级别会占用较多内存，速度可能变慢。
               </p>
             </div>
 
-            {/* 샘플러 */}
+            {/* 采样器 */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="sampler">샘플러</Label>
+                <Label htmlFor="sampler">采样器</Label>
                 <Select
                   value={samplers.includes(form.sampler) ? form.sampler : samplers[0]}
                   onValueChange={(v) => v && set({ sampler: String(v) })}
@@ -835,7 +833,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="scheduler">스케줄러</Label>
+                <Label htmlFor="scheduler">调度器</Label>
                 <Select
                   value={schedulers.includes(form.scheduler) ? form.scheduler : schedulers[0]}
                   onValueChange={(v) => v && set({ scheduler: String(v) })}
@@ -855,13 +853,13 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
                 </Select>
               </div>
               {form.engine === "mflux" ? (
-                <p className="text-xs text-muted-foreground sm:col-span-2">mflux 는 euler 샘플러와 선형 스케줄러만 지원합니다.</p>
+                <p className="text-xs text-muted-foreground sm:col-span-2">mflux 仅支持 euler 采样器和线性调度器。</p>
               ) : null}
             </div>
 
-            {/* 생성 수 */}
+            {/* 生成数量 */}
             <div className="grid gap-2">
-              <Label>연속 생성 수</Label>
+              <Label>连续生成数量</Label>
               <ToggleGroup
                 value={[String(count)]}
                 onValueChange={(v) => v[0] && setCount(Number(v[0]))}
@@ -870,7 +868,7 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
               >
                 {[1, 2, 4, MAX_BATCH].map((n) => (
                   <ToggleGroupItem key={n} value={String(n)} className="min-w-12">
-                    {n}장
+                    {n} 张
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
@@ -883,14 +881,14 @@ export function GeneratorForm({ engine, loadRequest, referenceRequest, onSubmit 
         <div className="flex flex-col gap-2">
           <Button size="lg" className="w-full" disabled={!canSubmit} onClick={() => void handleSubmit()}>
             {submitting ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <SparklesIcon data-icon="inline-start" />}
-            {count > 1 ? `${count}장 생성 시작` : "이미지 생성 시작"}
+            {count > 1 ? `开始生成 ${count} 张` : "开始生成图片"}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
             {editing && form.followReferenceSize && form.engine === "comfyui"
-              ? "참조 이미지 크기"
+              ? "参考图尺寸"
               : `${form.width} × ${form.height}`}{" "}
-            · {form.steps}스텝 · {modelSummary}
-            {editing ? ` · 편집(참조 ${form.references.length}장)` : ""} · ⌘/Ctrl + Enter 로도 시작할 수 있습니다
+            · {form.steps} 步 · {modelSummary}
+            {editing ? ` · 编辑（参考图 ${form.references.length} 张）` : ""} · 也可以按 ⌘/Ctrl + Enter 开始
           </p>
         </div>
       </CardContent>

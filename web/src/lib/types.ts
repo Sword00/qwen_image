@@ -17,22 +17,22 @@ export interface GenerationParams {
   height: number;
   steps: number;
   cfg: number;
-  /** 고정 시드. null 이면 작업 생성 시 무작위로 정한다. */
+  /** 固定种子；为 null 时在创建任务时随机生成。 */
   seed: number | null;
   sampler: string;
   scheduler: string;
   engine: Engine;
-  /** ComfyUI: diffusion_models 폴더의 GGUF 파일 이름 */
+  /** ComfyUI：diffusion_models 目录中的 GGUF 文件名。 */
   gguf: string;
-  /** ComfyUI: text_encoders 폴더의 파일 이름 */
+  /** ComfyUI：text_encoders 目录中的文件名。 */
   textEncoder: string;
-  /** mflux: 트랜스포머 양자화 비트 (null 이면 bf16) */
+  /** mflux：Transformer 量化位数（null 表示 bf16）。 */
   quantize: number | null;
-  /** 참조(편집 원본) 이미지의 업로드 ID 목록. 비어 있으면 텍스트→이미지 생성 */
+  /** 参考图（编辑原图）的上传 ID 列表；为空时执行文生图。 */
   references: string[];
-  /** 참조 이미지가 있을 때 출력 크기를 첫 참조 이미지에 맞출지 (ComfyUI) */
+  /** 有参考图时是否将输出尺寸匹配第一张参考图（ComfyUI）。 */
   followReferenceSize: boolean;
-  /** mflux img2img 변경 강도 (0~1). 1 에 가까울수록 원본에서 멀어진다 */
+  /** mflux img2img 变化强度（0~1）；越接近 1，结果越偏离原图。 */
   imageStrength: number;
   presetId?: string;
   ratioId?: string;

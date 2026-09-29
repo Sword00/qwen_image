@@ -1,29 +1,30 @@
 #!/usr/bin/env python3
-"""ComfyUI 서버 API 로 Qwen-Image-2.1 GGUF 이미지를 생성하는 CLI.
+"""通过 ComfyUI 服务 API 生成 Qwen-Image-2.1 GGUF 图像的命令行工具。
 
-사용법:
-  ./run-comfyui.sh   # 다른 터미널에서 서버를 먼저 띄운다
-  ./comfy-generate.py "프롬프트" -o outputs/result.png [--gguf Q8_0|Q4_K_M] [--text-encoder int8|bf16|heretic] [--steps 40] [--seed 42]
+用法：
+  ./run-comfyui.sh   # 先在另一个终端启动服务
+  ./comfy-generate.py "提示词" -o outputs/result.png [--gguf Q8_0|Q4_K_M] [--text-encoder int8|bf16|heretic] [--steps 40] [--seed 42]
 """
 import argparse, json, shutil, sys, time, urllib.request, uuid
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 GGUF_FILES = {
+    "Q5_K_M": "qwen-image-2.1-Q5_K_M.gguf",
     "Q8_0": "qwen-image-2.1-Q8_0.gguf",
     "Q4_K_M": "qwen-image-2.1-Q4_K_M.gguf",
 }
 TEXT_ENCODERS = {
     "int8": "qwen3vl_8b_int8_convrot.safetensors",
     "bf16": "qwen3vl_8b_bf16.safetensors",
-    # ./install-text-encoder-heretic.sh 로 설치하는 거부 완화 GGUF 인코더
+    # 由 ./install-text-encoder-heretic.sh 安装的降低拒答 GGUF 编码器
     "heretic": "qwen3vl_8b_heretic-Q4_K_M.gguf",
 }
 VAE = "qwen_image_2.1_vae_bf16.safetensors"
 
 
 def clip_loader(clip_name):
-    """GGUF 인코더는 ComfyUI-GGUF 의 CLIPLoaderGGUF 로, safetensors 는 기본 CLIPLoader 로 읽는다."""
+    """GGUF 编码器由 ComfyUI-GGUF 的 CLIPLoaderGGUF 读取，safetensors 使用默认 CLIPLoader。"""
     if clip_name.lower().endswith(".gguf"):
         return {"class_type": "CLIPLoaderGGUF", "inputs": {"clip_name": clip_name, "type": "qwen_image"}}
     return {"class_type": "CLIPLoader",
@@ -60,12 +61,12 @@ def api(server, path, data=None):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("prompt")
-    p.add_argument("-o", "--output", default=None, help="저장 경로 (기본: outputs/qwen21_gguf_XXXXX.png)")
+    p.add_argument("-o", "--output", default=None, help="保存路径（默认：outputs/qwen21_gguf_XXXXX.png）")
     p.add_argument("--negative-prompt", default="")
-    p.add_argument("--gguf", choices=GGUF_FILES, default="Q8_0")
+    p.add_argument("--gguf", choices=GGUF_FILES, default="Q5_K_M")
     p.add_argument("--text-encoder", choices=TEXT_ENCODERS, default="int8")
     p.add_argument("--steps", type=int, default=40)
-    p.add_argument("--cfg", type=float, default=1.0, help="부정 프롬프트를 쓸 때만 1보다 크게")
+    p.add_argument("--cfg", type=float, default=1.0, help="仅在使用负面提示词时设为大于 1")
     p.add_argument("--seed", type=int, default=int(time.time()) % 2_000_000_000)
     p.add_argument("--width", type=int, default=1024)
     p.add_argument("--height", type=int, default=1024)
@@ -75,14 +76,14 @@ def main():
     try:
         api(a.server, "/system_stats")
     except Exception as e:
-        sys.exit(f"ComfyUI 서버에 연결할 수 없습니다 ({a.server}): {e}\n먼저 ./run-comfyui.sh 로 서버를 실행하세요.")
+        sys.exit(f"无法连接 ComfyUI 服务（{a.server}）：{e}\n请先运行 ./run-comfyui.sh。")
 
     client_id = str(uuid.uuid4())
     res = api(a.server, "/prompt", {"prompt": build_workflow(a), "client_id": client_id})
     if "prompt_id" not in res:
-        sys.exit(f"워크플로 제출 실패: {json.dumps(res, ensure_ascii=False, indent=2)}")
+        sys.exit(f"工作流提交失败：{json.dumps(res, ensure_ascii=False, indent=2)}")
     pid = res["prompt_id"]
-    print(f"제출됨 prompt_id={pid} seed={a.seed} gguf={a.gguf} te={a.text_encoder} {a.width}x{a.height} steps={a.steps}")
+    print(f"已提交 prompt_id={pid} seed={a.seed} gguf={a.gguf} te={a.text_encoder} {a.width}x{a.height} steps={a.steps}")
 
     t0 = time.time()
     while True:
@@ -91,18 +92,18 @@ def main():
             break
         q = api(a.server, "/queue")
         running = len(q.get("queue_running", [])); pending = len(q.get("queue_pending", []))
-        print(f"\r생성 중... {time.time() - t0:5.0f}s (실행 {running}, 대기 {pending})", end="", flush=True)
+        print(f"\r生成中... {time.time() - t0:5.0f}s（运行 {running}，等待 {pending}）", end="", flush=True)
         time.sleep(2)
     print()
     entry = hist[pid]
     status = entry.get("status", {})
     if status.get("status_str") == "error":
         msgs = [m for m in status.get("messages", []) if m[0] == "execution_error"]
-        sys.exit("실행 오류:\n" + json.dumps(msgs, ensure_ascii=False, indent=2))
+        sys.exit("执行错误：\n" + json.dumps(msgs, ensure_ascii=False, indent=2))
 
     images = [img for out in entry["outputs"].values() for img in out.get("images", [])]
     if not images:
-        sys.exit("출력 이미지가 없습니다.")
+        sys.exit("没有输出图像。")
     img = images[0]
     src = HERE / "outputs" / img.get("subfolder", "") / img["filename"]
     if a.output:
@@ -110,7 +111,7 @@ def main():
         shutil.move(src, dst)
     else:
         dst = src
-    print(f"완료 ({time.time() - t0:.0f}s): {dst}")
+    print(f"完成（{time.time() - t0:.0f}s）：{dst}")
 
 
 if __name__ == "__main__":

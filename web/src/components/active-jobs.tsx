@@ -11,14 +11,14 @@ import { formatDuration, truncate } from "@/lib/format";
 import type { Job, Phase } from "@/lib/types";
 
 const PHASE_LABEL: Record<Phase, string> = {
-  queued: "대기 중",
-  starting: "준비 중",
-  loading: "모델 불러오는 중",
-  encoding: "프롬프트 처리 중",
-  sampling: "이미지 생성 중",
-  decoding: "이미지 디코딩 중",
-  saving: "저장 중",
-  finished: "마무리 중",
+  queued: "排队中",
+  starting: "准备中",
+  loading: "正在加载模型",
+  encoding: "正在处理提示词",
+  sampling: "正在生成图片",
+  decoding: "正在解码图片",
+  saving: "保存中",
+  finished: "即将完成",
 };
 
 function progressPercent(job: Job): number {
@@ -68,7 +68,7 @@ export function ActiveJobs({ jobs, previews, onCancel }: Props) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <h2 className="font-heading text-base font-semibold">진행 중</h2>
+        <h2 className="font-heading text-base font-semibold">进行中</h2>
         <Badge variant="secondary">{jobs.length}</Badge>
       </div>
       <div className="flex flex-col gap-3">
@@ -88,7 +88,7 @@ export function ActiveJobs({ jobs, previews, onCancel }: Props) {
                 >
                   {preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={preview} alt="생성 중 미리보기" className="size-full object-cover" />
+                    <img src={preview} alt="生成预览" className="size-full object-cover" />
                   ) : running ? (
                     <Loader2Icon className="size-5 animate-spin text-muted-foreground" />
                   ) : (
@@ -107,14 +107,14 @@ export function ActiveJobs({ jobs, previews, onCancel }: Props) {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            aria-label="취소"
+                            aria-label="取消"
                             onClick={() => onCancel(job.id)}
                           />
                         }
                       >
                         <XIcon />
                       </TooltipTrigger>
-                      <TooltipContent>{running ? "생성 중단" : "대기열에서 제거"}</TooltipContent>
+                      <TooltipContent>{running ? "停止生成" : "从队列移除"}</TooltipContent>
                     </Tooltip>
                   </div>
 
@@ -124,18 +124,18 @@ export function ActiveJobs({ jobs, previews, onCancel }: Props) {
                       {p.width}×{p.height}
                     </Badge>
                     <Badge variant="outline" className="tabular-nums">
-                      {p.steps}스텝
+                      {p.steps} 步
                     </Badge>
                     <Badge variant="outline" className="tabular-nums">
-                      시드 {p.seed}
+                      种子 {p.seed}
                     </Badge>
-                    {p.references?.length ? <Badge variant="secondary">편집 · 참조 {p.references.length}장</Badge> : null}
+                    {p.references?.length ? <Badge variant="secondary">编辑 · 参考图 {p.references.length} 张</Badge> : null}
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className={running ? "text-foreground" : "text-muted-foreground"}>
-                        {running ? PHASE_LABEL[phase] : `대기 중 · ${index + 1}번째`}
+                        {running ? PHASE_LABEL[phase] : `排队中 · 第 ${index + 1} 项`}
                         {running && phase === "sampling" && total > 0 ? (
                           <span className="ml-1 tabular-nums text-muted-foreground">
                             {step}/{total}
@@ -144,8 +144,8 @@ export function ActiveJobs({ jobs, previews, onCancel }: Props) {
                       </span>
                       <span className="tabular-nums text-muted-foreground">
                         {running ? `${Math.round(pct)}%` : ""}
-                        {elapsed !== undefined ? ` · ${formatDuration(elapsed)} 경과` : ""}
-                        {running && etaMs !== undefined && phase === "sampling" ? ` · 약 ${formatDuration(etaMs)} 남음` : ""}
+                        {elapsed !== undefined ? ` · 已用时 ${formatDuration(elapsed)}` : ""}
+                        {running && etaMs !== undefined && phase === "sampling" ? ` · 约剩 ${formatDuration(etaMs)}` : ""}
                       </span>
                     </div>
                     <Progress

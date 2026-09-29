@@ -18,7 +18,7 @@ import { uploadPath } from "./uploads";
 
 export class CancelledError extends Error {
   constructor() {
-    super("사용자가 취소했습니다.");
+    super("用户已取消。");
     this.name = "CancelledError";
   }
 }
@@ -33,7 +33,7 @@ interface Waiter {
   update: Updater;
 }
 
-/** 워크플로 노드 번호 → 진행 단계 */
+/** 工作流节点编号 → 进度阶段。 */
 const NODE_PHASE: Record<string, Phase> = {
   "1": "loading",
   "2": "loading",
@@ -59,9 +59,9 @@ interface ComfyHistoryEntry {
 type WorkflowNode = { class_type: string; inputs: Record<string, unknown> };
 
 /**
- * 워크플로를 만든다. refNames 는 ComfyUI input 폴더에 올라간 참조 이미지 파일 이름이다.
- * 참조 이미지가 있으면 TextEncodeQwenImage21 의 images.image_N 입력으로 연결되고,
- * followReferenceSize 가 켜져 있으면 출력 잠재 공간도 인코더가 만든 것을 쓴다(첫 참조 이미지 크기).
+ * 构建工作流。refNames 是上传到 ComfyUI input 目录的参考图文件名。
+ * 有参考图时连接到 TextEncodeQwenImage21 的 images.image_N 输入；
+ * 开启 followReferenceSize 时，输出潜空间使用编码器生成的尺寸（第一张参考图尺寸）。
  */
 export function buildWorkflow(job: Job, refNames: string[] = []): Record<string, WorkflowNode> {
   const p = job.params;
@@ -141,7 +141,7 @@ class ComfyClient {
       const res = await fetch(`${COMFY_URL}${route}`, { ...init, signal: ctrl.signal, cache: "no-store" });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(`ComfyUI ${route} 응답 ${res.status}: ${text.slice(0, 300)}`);
+        throw new Error(`ComfyUI ${route} 响应 ${res.status}：${text.slice(0, 300)}`);
       }
       return (await res.json()) as T;
     } finally {
@@ -174,7 +174,7 @@ class ComfyClient {
         this.fetchJson<{ queue_running: unknown[]; queue_pending: unknown[] }>("/queue"),
       ]);
       const ggufFiles = unet.UnetLoaderGGUF?.input.required.unet_name?.[0] ?? [];
-      // safetensors 인코더(CLIPLoader)와 GGUF 인코더(CLIPLoaderGGUF)를 합친다. 비전 타워(mmproj-*)는 직접 고르는 파일이 아니다.
+      // safetensors 编码器（CLIPLoader）和 GGUF 编码器（CLIPLoaderGGUF）使用不同加载器；视觉塔（mmproj-*）不需要单独选择。
       const safetensorsEncoders = clip.CLIPLoader?.input.required.clip_name?.[0] ?? [];
       const ggufEncoders = (clipGguf.CLIPLoaderGGUF?.input.required.clip_name?.[0] ?? []).filter(
         (f) => f.toLowerCase().endsWith(".gguf") && !f.toLowerCase().startsWith("mmproj"),
@@ -211,12 +211,12 @@ class ComfyClient {
     this.statusCache = null;
   }
 
-  // ---------- 서버 자동 시작 ----------
+  // ---------- 自动启动服务器 ----------
 
   async ensureRunning(): Promise<void> {
     if (await this.isReachable()) return;
     if (!COMFY_AUTOSTART) {
-      throw new Error(`ComfyUI 서버(${COMFY_URL})에 연결할 수 없습니다. 먼저 ./run-comfyui.sh 로 서버를 실행하세요.`);
+      throw new Error(`无法连接 ComfyUI 服务器（${COMFY_URL}）。请先运行 ./run-comfyui.sh。`);
     }
     if (!this.startPromise) {
       this.startPromise = this.startServer().finally(() => {
@@ -230,12 +230,12 @@ class ComfyClient {
 
   private async startServer(): Promise<void> {
     if (!fs.existsSync(COMFY_START_SCRIPT)) {
-      throw new Error(`ComfyUI 실행 스크립트를 찾을 수 없습니다: ${COMFY_START_SCRIPT}`);
+      throw new Error(`找不到 ComfyUI 启动脚本：${COMFY_START_SCRIPT}`);
     }
     this.starting = true;
     this.invalidateStatus();
     void this.publishEngineStatus();
-    console.log(`[comfy] 서버를 시작합니다: ${COMFY_START_SCRIPT}`);
+    console.log(`[comfy] 正在启动服务器：${COMFY_START_SCRIPT}`);
     const log = fs.openSync(COMFY_LOG, "a");
     const child = spawn(COMFY_START_SCRIPT, [], {
       cwd: path.dirname(COMFY_START_SCRIPT),
@@ -250,18 +250,18 @@ class ComfyClient {
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 2000));
       if (await this.isReachable()) {
-        console.log("[comfy] 서버가 준비되었습니다.");
+        console.log("[comfy] 服务器已准备就绪。");
         return;
       }
       if (child.exitCode !== null) {
-        throw new Error(`ComfyUI 서버가 바로 종료되었습니다 (exit ${child.exitCode}). ${COMFY_LOG} 를 확인하세요.`);
+        throw new Error(`ComfyUI 服务器立即退出（exit ${child.exitCode}）。请检查 ${COMFY_LOG}。`);
       }
     }
-    throw new Error("ComfyUI 서버가 4분 안에 준비되지 않았습니다.");
+    throw new Error("ComfyUI 服务器在 4 分钟内未准备就绪。");
   }
 
   async publishEngineStatus(): Promise<void> {
-    // queue.ts 에서 worker 정보를 합쳐 publish 한다. 순환 참조를 피하려고 동적으로 불러온다.
+    // queue.ts 会合并 worker 信息并发布；动态导入用于避免循环引用。
     const { engineStatus } = await import("./queue");
     publish({ type: "engine", status: await engineStatus() });
   }
@@ -279,7 +279,7 @@ class ComfyClient {
       if (this.waiters.size > 0) setTimeout(() => this.ensureSocket(), 1000);
     });
     ws.addEventListener("error", () => {
-      /* close 이벤트에서 재연결한다 */
+      /* 在 close 事件中重新连接 */
     });
     this.ws = ws;
   }
@@ -289,7 +289,7 @@ class ComfyClient {
       try {
         this.onJsonMessage(JSON.parse(data));
       } catch (err) {
-        console.error("[comfy] 메시지 해석 실패:", err);
+        console.error("[comfy] 消息解析失败：", err);
       }
       return;
     }
@@ -303,7 +303,7 @@ class ComfyClient {
     switch (msg.type) {
       case "progress": {
         if (!waiter) return;
-        // 모델 로딩 등 다른 노드도 progress 를 보내므로 KSampler(6번 노드)의 진행률만 스텝으로 본다.
+        // 模型加载等其他节点也会发送 progress，因此只将 KSampler（节点 6）的进度计为采样步数。
         if (d.node !== undefined && d.node !== null && String(d.node) !== "6") return;
         const value = Number(d.value ?? 0);
         const max = Number(d.max ?? 0);
@@ -326,7 +326,7 @@ class ComfyClient {
       }
       case "execution_error": {
         if (!waiter) return;
-        const message = (d.exception_message as string) ?? "ComfyUI 실행 오류";
+        const message = (d.exception_message as string) ?? "ComfyUI 执行错误";
         const nodeType = d.node_type ? ` [${d.node_type}]` : "";
         waiter.reject(new Error(`${message}${nodeType}`));
         return;
@@ -373,14 +373,14 @@ class ComfyClient {
     publish({ type: "preview", id: waiter.jobId, dataUrl });
   }
 
-  // ---------- 참조 이미지 ----------
+  // ---------- 参考图 ----------
 
-  /** 참조 이미지를 ComfyUI 의 input 폴더에 올리고 LoadImage 가 쓸 파일 이름을 돌려준다. */
+  /** 将参考图上传到 ComfyUI 的 input 目录，并返回 LoadImage 使用的文件名。 */
   private async uploadReferences(job: Job): Promise<string[]> {
     const names: string[] = [];
     for (const id of job.params.references ?? []) {
       const file = uploadPath(id);
-      if (!fs.existsSync(file)) throw new Error(`참조 이미지를 찾을 수 없습니다: ${id}`);
+      if (!fs.existsSync(file)) throw new Error(`找不到参考图：${id}`);
       const bytes = fs.readFileSync(file);
       const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
       const form = new FormData();
@@ -398,7 +398,7 @@ class ComfyClient {
     return names;
   }
 
-  // ---------- 실행 ----------
+  // ---------- 执行 ----------
 
   async run(job: Job, update: Updater, onCancelReady: (cancel: () => Promise<void>) => void): Promise<JobImage> {
     update({ phase: "starting" });
@@ -416,7 +416,7 @@ class ComfyClient {
       15_000,
     );
     if (!res.prompt_id) {
-      throw new Error(`워크플로 제출 실패: ${JSON.stringify(res.error ?? res.node_errors ?? res).slice(0, 500)}`);
+      throw new Error(`工作流提交失败：${JSON.stringify(res.error ?? res.node_errors ?? res).slice(0, 500)}`);
     }
     const promptId = res.prompt_id;
     update({ promptId, phase: "loading" });
@@ -441,7 +441,7 @@ class ComfyClient {
           reject(err);
         },
       };
-      // 웹소켓이 끊겨 이벤트를 놓쳤을 때를 대비해 주기적으로 이력을 확인한다.
+      // 定期检查历史记录，避免 WebSocket 断开时错过事件。
       const poll = setInterval(async () => {
         try {
           const hist = await this.fetchJson<Record<string, ComfyHistoryEntry>>(`/history/${promptId}`);
@@ -451,11 +451,11 @@ class ComfyClient {
           else if (entry.status.status_str === "error") {
             const errMsg = entry.status.messages?.find((m) => m[0] === "execution_error")?.[1];
             waiter.reject(
-              cancelled ? new CancelledError() : new Error(String(errMsg?.exception_message ?? "ComfyUI 실행 오류")),
+              cancelled ? new CancelledError() : new Error(String(errMsg?.exception_message ?? "ComfyUI 执行错误")),
             );
           }
         } catch {
-          /* 다음 주기에 다시 확인 */
+          /* 下一轮继续检查 */
         }
       }, 8000);
       const cleanup = () => {
@@ -472,13 +472,13 @@ class ComfyClient {
     const image = Object.values(outputs)
       .flatMap((o) => o.images ?? [])
       .find((img) => img.type === "output");
-    if (!image) throw new Error("ComfyUI 가 출력 이미지를 남기지 않았습니다.");
+    if (!image) throw new Error("ComfyUI 没有生成输出图像。");
 
     const src = path.join(OUTPUTS_DIR, image.subfolder ?? "", image.filename);
     const dest = path.join(WEB_IMAGES_DIR, `${job.id}.png`);
     fs.mkdirSync(WEB_IMAGES_DIR, { recursive: true });
     if (path.resolve(src) !== path.resolve(dest)) {
-      if (!fs.existsSync(src)) throw new Error(`출력 파일을 찾을 수 없습니다: ${src}`);
+      if (!fs.existsSync(src)) throw new Error(`找不到输出文件：${src}`);
       fs.renameSync(src, dest);
     }
     const { width, height } = readPngSize(dest);
@@ -501,7 +501,7 @@ class ComfyClient {
         await fetch(`${COMFY_URL}/interrupt`, { method: "POST" }).catch(() => undefined);
       }
     } catch (err) {
-      console.error("[comfy] 취소 요청 실패:", err);
+      console.error("[comfy] 取消请求失败：", err);
     }
   }
 }

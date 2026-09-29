@@ -22,7 +22,7 @@ export default function Home() {
       try {
         await createJobs(params, count);
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "작업을 추가하지 못했습니다");
+        toast.error(err instanceof Error ? err.message : "添加任务失败");
       }
     },
     [createJobs],
@@ -31,10 +31,10 @@ export default function Home() {
   const handleLoadParams = useCallback((params: GenerationParams) => {
     setLoadRequest({ params, nonce: Date.now() });
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    toast("설정을 불러왔습니다. 필요한 값을 고친 뒤 생성을 시작하세요.");
+    toast("已加载设置。调整需要的参数后即可开始生成。");
   }, []);
 
-  /** 갤러리 이미지를 참조 이미지로 넘긴다. add 는 현재 목록에 덧붙이고, replace 는 그 이미지로 바꾼다. */
+  /** 将图库图像传给参考图列表；add 追加到当前列表，replace 用这些图像替换当前列表。 */
   const handleReferences = useCallback(async (jobs: Job[], mode: "add" | "replace") => {
     if (jobs.length === 0) return;
     try {
@@ -46,7 +46,7 @@ export default function Home() {
       setReferenceRequest({ ids, mode, nonce: Date.now() });
       formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "참조 이미지로 추가하지 못했습니다");
+      toast.error(err instanceof Error ? err.message : "添加参考图失败");
     }
   }, []);
 

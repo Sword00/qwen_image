@@ -33,7 +33,7 @@ function clamp(n: number, min: number, max: number): number {
 function normalize(input: Partial<GenerationParams>): GenerationParams {
   const p = { ...DEFAULT_PARAMS, ...input };
   const prompt = String(p.prompt ?? "").trim();
-  if (!prompt) throw new Error("프롬프트를 입력하세요.");
+  if (!prompt) throw new Error("请输入提示词。");
   const engine = p.engine === "mflux" ? "mflux" : "comfyui";
   const seed =
     p.seed === null || p.seed === undefined || Number.isNaN(Number(p.seed))
@@ -45,7 +45,7 @@ function normalize(input: Partial<GenerationParams>): GenerationParams {
     .slice(0, MAX_REFERENCES);
   let textEncoder = String(p.textEncoder || DEFAULT_PARAMS.textEncoder);
   if (engine === "comfyui" && references.length > 0 && isGgufTextEncoder(textEncoder) && !GGUF_TEXT_ENCODER_SUPPORTS_EDIT) {
-    // GGUF 인코더로는 참조 이미지를 읽을 수 없을 때 safetensors 인코더로 처리한다.
+    // GGUF 编码器无法读取参考图时，改用 safetensors 编码器处理。
     textEncoder = KNOWN_TEXT_ENCODERS[0];
   }
   return {
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
   try {
     body = (await req.json()) as CreateJobsRequest;
   } catch {
-    return NextResponse.json({ error: "요청 본문이 JSON 이 아닙니다." }, { status: 400 });
+    return NextResponse.json({ error: "请求正文不是有效的 JSON。" }, { status: 400 });
   }
   let params: GenerationParams;
   try {
@@ -109,14 +109,14 @@ export async function POST(req: Request) {
   return NextResponse.json({ jobs }, { status: 201 });
 }
 
-/** 여러 작업을 한 번에 삭제한다. 실행 중인 작업은 먼저 취소한다. */
+/** 批量删除任务；运行中的任务会先取消。 */
 export async function DELETE(req: Request) {
   let ids: string[] = [];
   try {
     const body = (await req.json()) as { ids?: string[] };
     ids = Array.isArray(body.ids) ? body.ids.filter((x) => typeof x === "string") : [];
   } catch {
-    return NextResponse.json({ error: "요청 본문이 JSON 이 아닙니다." }, { status: 400 });
+    return NextResponse.json({ error: "请求正文不是有效的 JSON。" }, { status: 400 });
   }
   const deleted: string[] = [];
   for (const id of ids) {

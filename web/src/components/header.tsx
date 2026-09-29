@@ -32,7 +32,7 @@ export function Header({ engine, connected, onStartComfy }: Props) {
           </span>
           <div className="leading-tight">
             <h1 className="font-heading text-base font-semibold">Qwen Image 2.1 Studio</h1>
-            <p className="hidden text-xs text-muted-foreground sm:block">Apple Silicon 로컬 이미지 생성</p>
+            <p className="hidden text-xs text-muted-foreground sm:block">Apple Silicon 本地图片生成</p>
           </div>
         </div>
 
@@ -46,11 +46,11 @@ export function Header({ engine, connected, onStartComfy }: Props) {
                       "size-1.5 rounded-full " + (connected ? "bg-emerald-500" : "bg-muted-foreground/50")
                     }
                   />
-                  {connected ? "실시간 연결" : "재연결 중"}
+                  {connected ? "实时连接" : "正在重连"}
                 </Badge>
               }
             />
-            <TooltipContent>브라우저와 서버 사이의 실시간 이벤트 연결 상태</TooltipContent>
+            <TooltipContent>浏览器与服务器之间的实时事件连接状态</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -80,19 +80,19 @@ export function Header({ engine, connected, onStartComfy }: Props) {
             />
             <TooltipContent>
               {comfyState === "on"
-                ? `ComfyUI 연결됨 · 대기열 ${comfy?.queueRemaining ?? 0}개`
+                ? `ComfyUI 已连接 · 队列 ${comfy?.queueRemaining ?? 0} 项`
                 : comfyState === "starting"
-                  ? "ComfyUI 서버를 시작하는 중입니다"
+                  ? "正在启动 ComfyUI 服务"
                   : comfyState === "off"
-                    ? "ComfyUI 서버가 꺼져 있습니다. 생성을 시작하면 자동으로 켜집니다."
-                    : "상태를 확인하는 중"}
+                    ? "ComfyUI 服务未运行，开始生成时会自动启动。"
+                    : "正在检查状态"}
             </TooltipContent>
           </Tooltip>
 
           {comfyState === "off" ? (
             <Button size="sm" variant="outline" onClick={onStartComfy}>
               <PlayIcon data-icon="inline-start" />
-              ComfyUI 시작
+              启动 ComfyUI
             </Button>
           ) : null}
 

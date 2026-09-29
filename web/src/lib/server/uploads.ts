@@ -20,7 +20,7 @@ export function uploadExists(id: string): boolean {
   return isUploadId(id) && fs.existsSync(uploadPath(id));
 }
 
-/** 어떤 형식의 이미지든 PNG 로 변환해 저장한다. 너무 큰 이미지는 긴 변 2048 로 줄인다. */
+/** 将任意格式的图像转换为 PNG 保存；过大的图像会缩放到最长边 2048。 */
 export async function saveUpload(buffer: Buffer): Promise<UploadInfo> {
   ensureDirs();
   const id = randomUUID();
@@ -34,7 +34,7 @@ export async function saveUpload(buffer: Buffer): Promise<UploadInfo> {
   return { id, width, height, bytes: fs.statSync(file).size };
 }
 
-/** 이미 있는 PNG 파일(예: 생성 결과)을 업로드 폴더로 복사한다. */
+/** 将已有 PNG 文件（例如生成结果）复制到上传目录。 */
 export function copyToUploads(src: string): UploadInfo {
   ensureDirs();
   const id = randomUUID();

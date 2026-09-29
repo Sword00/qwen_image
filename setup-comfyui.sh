@@ -1,20 +1,20 @@
 #!/usr/bin/env zsh
-# Qwen Image Studio 실행 환경 구성 (Apple Silicon)
+# 配置 Qwen Image Studio 运行环境（Apple Silicon）
 #
-# 하는 일 (이미 된 단계는 건너뛴다):
-#   1. ComfyUI 와 leejet/ComfyUI-GGUF 커스텀 노드 클론
-#   2. Python 3.12 가상환경(uv) 생성과 의존성 설치 (PyTorch MPS 포함)
-#   3. GGUF 인코더용 보완 모듈(custom_nodes/qwen-studio-gguf-qwen3vl) 링크
-#   4. 모델 다운로드: Qwen-Image-2.1 GGUF, 텍스트 인코더(int8), VAE
-#   5. 웹 앱(web/) 의존성 설치
+# 执行内容（已完成的步骤会跳过）：
+#   1. 克隆 ComfyUI 和 leejet/ComfyUI-GGUF 自定义节点
+#   2. 创建 Python 3.12 虚拟环境并安装依赖（包括 PyTorch MPS）
+#   3. 链接 GGUF 编码器补充模块
+#   4. 下载 Qwen-Image-2.1 GGUF、文本编码器和 VAE
+#   5. 安装 Web 应用（web/）依赖
 #
-# 사용법:
-#   ./setup-comfyui.sh                 # 기본: Q8_0 GGUF + int8 인코더 + VAE (약 18GB)
-#   ./setup-comfyui.sh --q4            # Q4_K_M GGUF 도 함께 (+4.6GB)
-#   ./setup-comfyui.sh --skip-models   # 코드·환경만 구성하고 모델은 받지 않음
-#   ./setup-comfyui.sh --skip-web      # 웹 앱 의존성 설치 생략
+# 用法：
+#   ./setup-comfyui.sh                 # 默认：Q5_K_M GGUF + int8 编码器 + VAE（约 16GB）
+#   ./setup-comfyui.sh --q4            # 同时下载 Q4_K_M GGUF（额外约 4.2GB）
+#   ./setup-comfyui.sh --skip-models   # 只配置代码和环境，不下载模型
+#   ./setup-comfyui.sh --skip-web      # 跳过 Web 依赖安装
 #
-# 필요: macOS(Apple Silicon), git, uv (brew install uv), Node.js 20 이상(웹 앱), 디스크 여유 25GB 이상
+# 要求：macOS（Apple Silicon）、git、uv（brew install uv）、Node.js 20 以上，至少 25GB 磁盘空间
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -29,7 +29,7 @@ for arg in "$@"; do
     --skip-models) SKIP_MODELS=1 ;;
     --skip-web) SKIP_WEB=1 ;;
     -h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) print "알 수 없는 옵션: $arg" >&2; exit 1 ;;
+    *) print "未知选项：$arg" >&2; exit 1 ;;
   esac
 done
 
@@ -37,82 +37,88 @@ info() { print -P "%F{blue}▸%f $*"; }
 ok()   { print -P "%F{green}✓%f $*"; }
 fail() { print -P "%F{red}✗%f $*" >&2; exit 1; }
 
-[[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]] || print -P "%F{yellow}!%f Apple Silicon Mac 이 아닙니다. MPS 가속을 전제로 한 스크립트입니다."
-command -v git >/dev/null 2>&1 || fail "git 이 필요합니다."
-command -v uv  >/dev/null 2>&1 || fail "uv 가 필요합니다: brew install uv"
+[[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]] || print -P "%F{yellow}!%f 当前不是 Apple Silicon Mac，本脚本以 MPS 加速为前提。"
+command -v git >/dev/null 2>&1 || fail "需要 git。"
+UV_BIN="${UV_BIN:-$HOME/Library/Python/3.9/bin/uv}"
+UVX_BIN="${UVX_BIN:-$HOME/Library/Python/3.9/bin/uvx}"
+[[ -x "$UV_BIN" ]] || fail "需要 uv：brew install uv"
 
-# ---- 1. 소스 ----
+# ---- 1. 源码 ----
 if [[ -d "$COMFY/.git" ]]; then
-  ok "ComfyUI 이미 있음"
+  ok "ComfyUI 已存在"
 else
-  info "ComfyUI 클론"
-  git clone https://github.com/comfyanonymous/ComfyUI "$COMFY"
+  info "正在克隆 ComfyUI"
+  git clone --depth 1 https://github.com/comfyanonymous/ComfyUI "$COMFY"
 fi
 if [[ -d "$COMFY/custom_nodes/ComfyUI-GGUF/.git" ]]; then
-  ok "ComfyUI-GGUF 이미 있음"
+  ok "ComfyUI-GGUF 已存在"
 else
-  info "ComfyUI-GGUF (leejet 포크, Qwen-Image-2.1 지원) 클론"
-  git clone https://github.com/leejet/ComfyUI-GGUF "$COMFY/custom_nodes/ComfyUI-GGUF"
+  info "正在克隆 ComfyUI-GGUF（leejet 分支，支持 Qwen-Image-2.1）"
+  git clone --depth 1 https://github.com/leejet/ComfyUI-GGUF "$COMFY/custom_nodes/ComfyUI-GGUF"
 fi
 
-# ---- 2. 파이썬 환경 ----
+# ---- 2. Python 环境 ----
 if [[ -x "$COMFY/.venv/bin/python" ]] && "$COMFY/.venv/bin/python" -c "import torch, gguf" >/dev/null 2>&1; then
-  ok "가상환경과 의존성 이미 있음 ($("$COMFY/.venv/bin/python" -c 'import torch; print("torch", torch.__version__)'))"
+  ok "虚拟环境和依赖已存在（$("$COMFY/.venv/bin/python" -c 'import torch; print("torch", torch.__version__)')）"
 else
-  info "가상환경 생성 (Python $PY_VERSION) 과 의존성 설치"
-  uv venv --python "$PY_VERSION" "$COMFY/.venv"
-  uv pip install --python "$COMFY/.venv/bin/python" torch torchvision torchaudio \
+  info "创建虚拟环境（Python $PY_VERSION）并安装依赖"
+  "$UV_BIN" venv --python "$PY_VERSION" "$COMFY/.venv"
+  "$UV_BIN" pip install --python "$COMFY/.venv/bin/python" torch torchvision torchaudio \
     -r "$COMFY/requirements.txt" -r "$COMFY/custom_nodes/ComfyUI-GGUF/requirements.txt"
-  "$COMFY/.venv/bin/python" -c "import torch; assert torch.backends.mps.is_available(), 'MPS 사용 불가'; print('torch', torch.__version__, 'MPS OK')"
+  "$COMFY/.venv/bin/python" -c "import torch; assert torch.backends.mps.is_available(), 'MPS 不可用'; print('torch', torch.__version__, 'MPS OK')"
 fi
 
-# ---- 3. 보완 모듈 링크 ----
+# ---- 3. 补充模块链接 ----
 LINK="$COMFY/custom_nodes/qwen-studio-gguf-qwen3vl"
 if [[ -L "$LINK" || -d "$LINK" ]]; then
-  ok "보완 모듈 링크 이미 있음"
+  ok "补充模块链接已存在"
 else
   ln -s ../../custom_nodes/qwen-studio-gguf-qwen3vl "$LINK"
-  ok "보완 모듈 링크 생성: custom_nodes/qwen-studio-gguf-qwen3vl"
+  ok "已创建补充模块链接：custom_nodes/qwen-studio-gguf-qwen3vl"
 fi
 
-# ---- 4. 모델 ----
+# ---- 4. 模型 ----
 if (( SKIP_MODELS )); then
-  info "모델 다운로드 생략 (--skip-models)"
+  info "跳过模型下载（--skip-models）"
 else
   mkdir -p "$COMFY/models/diffusion_models" "$COMFY/models/text_encoders" "$COMFY/models/vae"
-  download() { # $1=repo $2=repo 안 경로 $3=대상 폴더
+  if ! "$COMFY/.venv/bin/python" -c "import modelscope" >/dev/null 2>&1; then
+    "$UV_BIN" pip install --python "$COMFY/.venv/bin/python" modelscope
+  fi
+  download() { # $1=仓库 $2=仓库内路径 $3=目标目录
     local repo="$1" path="$2" dest="$3" name="${2##*/}"
-    if [[ -f "$dest/$name" ]]; then ok "$name 이미 있음"; return; fi
-    info "내려받기: $repo/$path"
-    uvx --from "huggingface_hub[hf_xet]" hf download "$repo" "$path" --local-dir "$dest"
-    # --local-dir 은 repo 안의 하위 폴더 구조를 그대로 만들므로 파일을 대상 폴더로 올린다
-    if [[ "$path" == */* && -f "$dest/$path" ]]; then mv "$dest/$path" "$dest/$name"; rmdir "$dest/${path%/*}" 2>/dev/null || true; fi
-    rm -rf "$dest/.cache"
+    if [[ -f "$dest/$name" ]]; then ok "$name 已存在"; return; fi
+    info "正在下载：$repo/$path"
+    # ModelScope is substantially faster and more reliable on this machine.
+    "$COMFY/.venv/bin/modelscope" download --model "$repo" "$path" --local_dir "$dest"
+    # --local-dir 会保留仓库中的子目录结构，因此将文件移动到目标目录
+    if [[ "$path" == */* && -f "$dest/$path" ]]; then /bin/mv "$dest/$path" "$dest/$name"; /bin/rmdir "$dest/${path%/*}" 2>/dev/null || true; fi
+    /bin/rm -rf "$dest/.cache"
   }
-  download abenzerps/Qwen-Image-2.1-GGUF qwen-image-2.1-Q8_0.gguf "$COMFY/models/diffusion_models"
+  download unsloth/Qwen-Image-2.1-GGUF qwen-image-2.1-Q5_K_M.gguf "$COMFY/models/diffusion_models"
   (( WITH_Q4 )) && download abenzerps/Qwen-Image-2.1-GGUF qwen-image-2.1-Q4_K_M.gguf "$COMFY/models/diffusion_models"
   download Comfy-Org/Qwen-Image-2.1 text_encoders/qwen3vl_8b_int8_convrot.safetensors "$COMFY/models/text_encoders"
   download Comfy-Org/Qwen-Image-2.1 vae/qwen_image_2.1_vae_bf16.safetensors "$COMFY/models/vae"
 fi
 
-# ---- 5. 웹 앱 ----
+# ---- 5. Web 应用 ----
 if (( SKIP_WEB )); then
-  info "웹 앱 의존성 설치 생략 (--skip-web)"
+  info "跳过 Web 应用依赖安装（--skip-web）"
 elif command -v npm >/dev/null 2>&1; then
-  if [[ -d "$ROOT/web/node_modules" ]]; then ok "웹 앱 의존성 이미 있음"; else
-    info "웹 앱 의존성 설치"; ( cd "$ROOT/web" && npm install )
+  if [[ -d "$ROOT/web/node_modules" ]]; then ok "Web 应用依赖已存在"; else
+    info "安装 Web 应用依赖"; ( cd "$ROOT/web" && npm install )
   fi
 else
-  print -P "%F{yellow}!%f npm 이 없어 웹 앱 의존성을 건너뜁니다. Node.js 20 이상을 설치한 뒤 web/ 에서 npm install 을 실행하세요."
+  print -P "%F{yellow}!%f 未找到 npm，跳过 Web 应用依赖。请安装 Node.js 20 以上，然后在 web/ 中运行 npm install。"
 fi
 
 print
-ok "구성 완료"
+ok "配置完成"
 cat <<GUIDE
 
-다음 단계
-  ./run-web.sh                          웹 앱 실행 → http://127.0.0.1:3210  (ComfyUI 는 자동으로 켜집니다)
-  ./run-comfyui.sh                      ComfyUI 만 실행 → http://127.0.0.1:8188
-  ./comfy-generate.py "프롬프트"         터미널에서 생성 (ComfyUI 가 켜져 있어야 함)
-  ./install-text-encoder-heretic.sh     선택: 거부 완화 GGUF 텍스트 인코더 설치
+下一步
+  ./run-web.sh                          启动 Web 应用 → http://127.0.0.1:3210（ComfyUI 会自动启动）
+  ./run-comfyui.sh                      仅启动 ComfyUI → http://127.0.0.1:8188
+  ./comfy-generate.py "提示词"          在终端生成（需要先启动 ComfyUI）
+  ./install-text-encoder-heretic.sh     可选：安装降低拒答的 GGUF 文本编码器
 GUIDE

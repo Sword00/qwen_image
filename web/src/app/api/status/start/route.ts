@@ -5,12 +5,12 @@ import { publishEngineStatus } from "@/lib/server/queue";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** ComfyUI 서버가 꺼져 있으면 시작한다. 준비되기까지 1~2분 걸리므로 바로 응답하고 진행 상황은 SSE 로 알린다. */
+/** ComfyUI 未运行时启动它。准备过程需要约 1~2 分钟，因此立即响应并通过 SSE 通知进度。 */
 export async function POST() {
   if (await comfy.isReachable()) return NextResponse.json({ starting: false, reachable: true });
   void comfy
     .ensureRunning()
-    .catch((err) => console.error("[status] ComfyUI 시작 실패:", err))
+    .catch((err) => console.error("[status] ComfyUI 启动失败：", err))
     .finally(() => void publishEngineStatus());
   return NextResponse.json({ starting: true, reachable: false });
 }

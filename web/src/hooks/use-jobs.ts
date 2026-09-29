@@ -46,9 +46,9 @@ export function useJobs() {
           prevStatus.current[job.id] = job.status;
           if (prev && prev !== job.status) {
             if (job.status === "done") {
-              toast.success("이미지 생성 완료", { description: truncate(job.params.prompt, 70) });
+              toast.success("图像生成完成", { description: truncate(job.params.prompt, 70) });
             } else if (job.status === "failed") {
-              toast.error("이미지 생성 실패", { description: job.error ? truncate(job.error, 140) : undefined });
+              toast.error("图像生成失败", { description: job.error ? truncate(job.error, 140) : undefined });
             }
           }
           setState((s) => {
@@ -88,7 +88,7 @@ export function useJobs() {
         try {
           handle(JSON.parse(ev.data) as ServerEvent);
         } catch (err) {
-          console.error("이벤트 해석 실패", err);
+          console.error("事件解析失败", err);
         }
       };
       source.onerror = () => {
@@ -121,16 +121,16 @@ export function useJobs() {
 
   const createJobs = useCallback(async (params: GenerationParams, count = 1) => {
     const res = await api.createJobs({ params, count });
-    toast.info(count > 1 ? `${count}개 작업을 대기열에 추가했습니다` : "작업을 대기열에 추가했습니다");
+    toast.info(count > 1 ? `已将 ${count} 个任务加入队列` : "已将任务加入队列");
     return res.jobs;
   }, []);
 
   const cancelJob = useCallback(async (id: string) => {
     try {
       await api.cancelJob(id);
-      toast("작업을 취소했습니다");
+      toast("已取消任务");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "취소하지 못했습니다");
+      toast.error(err instanceof Error ? err.message : "取消任务失败");
     }
   }, []);
 
@@ -139,19 +139,19 @@ export function useJobs() {
     try {
       if (ids.length === 1) await api.deleteJob(ids[0]);
       else await api.deleteJobs(ids);
-      toast(ids.length > 1 ? `${ids.length}개 항목을 삭제했습니다` : "삭제했습니다");
+      toast(ids.length > 1 ? `已删除 ${ids.length} 个项目` : "已删除");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "삭제하지 못했습니다");
+      toast.error(err instanceof Error ? err.message : "删除失败");
     }
   }, []);
 
   const startComfy = useCallback(async () => {
     try {
       const res = await api.startComfy();
-      if (res.starting) toast.info("ComfyUI 서버를 시작합니다. 준비까지 1~2분 걸립니다.");
-      else toast("ComfyUI 서버가 이미 실행 중입니다");
+      if (res.starting) toast.info("正在启动 ComfyUI，准备就绪大约需要 1~2 分钟。");
+      else toast("ComfyUI 已经在运行");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "서버를 시작하지 못했습니다");
+      toast.error(err instanceof Error ? err.message : "启动服务器失败");
     }
   }, []);
 
@@ -160,7 +160,7 @@ export function useJobs() {
       const status = await api.status();
       setState((s) => ({ ...s, engine: status }));
     } catch {
-      /* SSE 로 다시 받는다 */
+      /* 通过 SSE 重新接收 */
     }
   }, []);
 

@@ -55,7 +55,7 @@ class Worker {
         j.error = cancelled ? undefined : err instanceof Error ? err.message : String(err);
         j.finishedAt = Date.now();
       });
-      if (!cancelled) console.error(`[worker] 작업 ${job.id} 실패:`, err);
+      if (!cancelled) console.error(`[worker] 任务 ${job.id} 失败：`, err);
     } finally {
       this.cancelFns.delete(job.id);
       this.timing.delete(job.id);
@@ -101,7 +101,7 @@ class Worker {
       const fn = this.cancelFns.get(id);
       if (fn) await fn();
       else {
-        // 아직 엔진이 취소 함수를 등록하기 전이면 실패로 표시만 한다.
+        // 如果引擎尚未注册取消函数，则只标记为失败。
         return store.patch(id, (j) => {
           j.status = "cancelled";
           j.finishedAt = Date.now();
@@ -132,9 +132,9 @@ export async function publishEngineStatus(): Promise<void> {
   try {
     publish({ type: "engine", status: await engineStatus() });
   } catch (err) {
-    console.error("[worker] 엔진 상태 전송 실패:", err);
+    console.error("[worker] 发送引擎状态失败：", err);
   }
 }
 
-// 서버가 시작될 때 대기 중이던 작업을 이어서 처리한다.
+// 服务器启动时继续处理等待中的任务。
 setTimeout(() => worker.kick(), 500);

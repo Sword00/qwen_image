@@ -8,7 +8,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    throw new Error(data?.error ?? `요청 실패 (${res.status})`);
+    throw new Error(data?.error ?? `请求失败（${res.status}）`);
   }
   return data as T;
 }
@@ -27,7 +27,7 @@ export const api = {
     body.append("file", file);
     const res = await fetch("/api/uploads", { method: "POST", body });
     const data = await res.json();
-    if (!res.ok) throw new Error(data?.error ?? `업로드 실패 (${res.status})`);
+    if (!res.ok) throw new Error(data?.error ?? `上传失败（${res.status}）`);
     return data as UploadInfo;
   },
   uploadFromJob: (jobId: string) =>
